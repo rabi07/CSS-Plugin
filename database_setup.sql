@@ -48,3 +48,5 @@ CREATE TABLE IF NOT EXISTS `sa_servers` (
 						 PRIMARY KEY (`id`),
 						 UNIQUE KEY `address` (`address`)
 						) ENGINE=InnoDB AUTO_INCREMENT=36 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+ALTER TABLE `sa_servers` ADD COLUMN IF NOT EXISTS `rcon` VARCHAR(64) NULL;

@@ -5,7 +5,7 @@ namespace CS2_SimpleAdmin
 {
 	public class CS2_SimpleAdminConfig : BasePluginConfig
 	{
-		public override int Version { get; set; } = 5;
+		public override int Version { get; set; } = 6;
 
 		[JsonPropertyName("DatabaseHost")]
 		public string DatabaseHost { get; set; } = "";
@@ -36,5 +36,11 @@ namespace CS2_SimpleAdmin
 
 		[JsonPropertyName("DiscordWebhook")]
 		public string DiscordWebhook { get; set; } = "";
+
+		[JsonPropertyName("DefaultServerIP")]
+		public string DefaultServerIP { get; set; } = "";
+
+		[JsonPropertyName("PanelURL")]
+		public string PanelURL { get; set; } = "";
 	}
 }

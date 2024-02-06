@@ -46,7 +46,7 @@ public partial class CS2_SimpleAdmin : BasePlugin, IPluginConfig<CS2_SimpleAdmin
 	public static MemoryFunctionVoid<CBasePlayerController, CCSPlayerPawn, bool, bool> CBasePlayerController_SetPawnFunc = new(
 		RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ? "\\x55\\x48\\x89\\xE5\\x41\\x57\\x41\\x56\\x41\\x55\\x41\\x54\\x49\\x89\\xFC\\x53\\x48\\x89\\xF3\\x48\\x81\\xEC\\xC8\\x00\\x00\\x00" : "\\x44\\x88\\x4C\\x24\\x2A\\x55\\x57"
 	);
-	public override string ModuleName => "CS2-SimpleAdmin";
+	public override string ModuleName => "CSS-Panel";
 	public override string ModuleDescription => "Simple admin plugin for Counter-Strike 2 :)";
 	public override string ModuleAuthor => "daffyy";
 	public override string ModuleVersion => "1.3.0b";
@@ -81,6 +81,7 @@ public partial class CS2_SimpleAdmin : BasePlugin, IPluginConfig<CS2_SimpleAdmin
 			Port = (uint)config.DatabasePort,
 			Pooling = true,
 		};
+
 
 		dbConnectionString = builder.ConnectionString;
 		_database = new(dbConnectionString);
@@ -386,6 +387,77 @@ public partial class CS2_SimpleAdmin : BasePlugin, IPluginConfig<CS2_SimpleAdmin
 			});
 			Server.PrintToConsole($"--------- END PLAYER LIST ---------");
 		}
+	}
+
+	/**
+	 * Prints the server info and a list of players to the console
+	 */
+	[ConsoleCommand("css_query")]
+	[CommandHelper(whoCanExecute: CommandUsage.SERVER_ONLY)]
+	[RequiresPermissions("@css/root")]
+	public void OnQueryCommand(CCSPlayerController? caller, CommandInfo command)
+	{
+		List<CCSPlayerController> playersToTarget = Utilities.GetPlayers().Where(player => caller!.CanTarget(player) && player != null && player.IsValid && player.Connected == PlayerConnectedState.PlayerConnected && !player.IsHLTV).ToList();
+
+		string Map = Server.MapName;
+		int Players = playersToTarget.Count;
+		int MaxPlayers = Server.MaxPlayers;
+		string[] Maps;
+
+		try
+		{
+			Maps = Server.GetMapList();
+		}
+		catch (Exception)
+		{
+			Maps = new string[0]; // return an empty array
+		}
+
+		var server = new
+		{
+			map = Map,
+			players = Players,
+			maxPlayers = MaxPlayers,
+			maps = Maps
+		};
+
+		List<object> users = new List<object>();
+
+		playersToTarget.FindAll(player => !player.IsBot && !player.IsHLTV && player.PlayerName != "").ForEach(player =>
+		{
+			var user = new
+			{
+				userId = player.UserId,
+				playerName = player.PlayerName,
+				ipAddress = player.IpAddress?.Split(":")[0],
+				steamID = player.SteamID,
+				ping = player.Ping,
+				team = player.Team,
+				clanName = player.ClanName,
+				kills = player.Kills, // ? Is this correct?
+				deaths = player.PlayerDominated, // ? Is this correct?
+				score = player.Score,
+				roundScore = player.RoundScore,
+				roundsWon = player.RoundsWon,
+				flags = player.Flags,
+				mvps = player.MVPs,
+				connected = player.Connected,
+				valid = player.IsValid,
+				time = player.LerpTime, // ? Fix this, it's not the time the player has been connected
+			};
+
+			users.Add(user);
+		});
+
+		string jsonString = JsonConvert.SerializeObject(
+			new
+			{
+				server,
+				users
+			}
+		);
+
+		Server.PrintToConsole(jsonString);
 	}
 
 	[ConsoleCommand("css_kick")]

@@ -291,8 +291,9 @@ public partial class CS2_SimpleAdmin
 
 		AddTimer(2.0f, async () =>
 		{
-			string? address = $"{ConVar.Find("ip")!.StringValue}:{ConVar.Find("hostport")!.GetPrimitiveValue<int>()}";
+			string? address = $"{(Config.DefaultServerIP != "" ? Config.DefaultServerIP : ConVar.Find("ip")!.StringValue)}:{ConVar.Find("hostport")!.GetPrimitiveValue<int>()}";
 			string? hostname = ConVar.Find("hostname")!.StringValue;
+			string? rcon = ConVar.Find("rcon_password")!.StringValue;
 
 			await Task.Run(async () =>
 			{
@@ -308,14 +309,14 @@ public partial class CS2_SimpleAdmin
 						if (!addressExists)
 						{
 							await connection.ExecuteAsync(
-								"INSERT INTO sa_servers (address, hostname) VALUES (@address, @hostname)",
-								new { address, hostname });
+								"INSERT INTO sa_servers (address, hostname, rcon) VALUES (@address, @hostname, @rcon)",
+								new { address, hostname, rcon });
 						}
 						else
 						{
 							await connection.ExecuteAsync(
-								"UPDATE `sa_servers` SET hostname = @hostname WHERE address = @address",
-								new { address, hostname });
+								"UPDATE `sa_servers` SET hostname = @hostname, rcon = @rcon WHERE address = @address",
+								new { address, rcon, hostname });
 						}
 
 						int? serverId = await connection.ExecuteScalarAsync<int>(
