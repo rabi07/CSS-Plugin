@@ -2,6 +2,13 @@
 
 The plugin is forked and based on [daffyyyy/CS2-SimpleAdmin](https://github.com/daffyyyy/CS2-SimpleAdmin), included with some additional features and commands for the CSS-Panel web app.
 
+### Features
+- Everything from [daffyyyy/CS2-SimpleAdmin](https://github.com/daffyyyy/CS2-SimpleAdmin) plugin
+- Added new "RCON" db field for servers to store the RCON password and let the panel use it to send RCON commands
+- Added new "sm_query" command to query the server for player list and server information through the panel
+- Chat logger (based on [oqyh/cs2-Chat-Logger](https://github.com/oqyh/cs2-Chat-Logger/tree/main)) to log chat messages to the database
+
+
 ### Commands
 ```js
 - css_addadmin <steamid> <name> <flags/groups> <immunity> [time in minutes] - Add admin by steamid // @css/root

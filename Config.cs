@@ -42,5 +42,17 @@ namespace CS2_SimpleAdmin
 
 		[JsonPropertyName("PanelURL")]
 		public string PanelURL { get; set; } = "";
+
+		[JsonPropertyName("ChatLog_Enable")]
+		public bool ChatLog_Enable { get; set; } = true;
+
+		[JsonPropertyName("ChatLog_ExcludeMessageContains")]
+		public string ExcludeMessageContains { get; set; } = "!./";
+
+		[JsonPropertyName("ChatLog_ExcludeMessageContainsLessThanXLetters")]
+		public int ExcludeMessageContainsLessThanXLetters { get; set; } = 0;
+
+		[JsonPropertyName("ChatLog_ExcludeMessageDuplicate")]
+		public bool ExcludeMessageDuplicate { get; set; } = false;
 	}
 }

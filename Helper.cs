@@ -155,5 +155,10 @@ namespace CS2_SimpleAdmin
 				option.Disabled = true;
 			}
 		}
+
+		public static string GetSteamProfileLink(string userId)
+		{
+			return $"https://steamcommunity.com/profiles/{userId}";
+		}
 	}
 }

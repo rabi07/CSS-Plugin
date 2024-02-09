@@ -47,6 +47,14 @@ public partial class CS2_SimpleAdmin : BasePlugin, IPluginConfig<CS2_SimpleAdmin
 	public override string ModuleAuthor => "daffyy";
 	public override string ModuleVersion => "1.3.0c";
 
+	private static readonly HttpClient _httpClient = new HttpClient();
+	private static readonly HttpClient httpClient = new HttpClient();
+
+	static private Dictionary<int, bool> BteamChat = new Dictionary<int, bool>();
+
+	static string firstMessage = "";
+	static string secondMessage = "";
+
 	public CS2_SimpleAdminConfig Config { get; set; } = new();
 
 	public override void Load(bool hotReload)
@@ -59,7 +67,6 @@ public partial class CS2_SimpleAdmin : BasePlugin, IPluginConfig<CS2_SimpleAdmin
 		}
 
 		CBasePlayerController_SetPawnFunc = new(GameData.GetSignature("CBasePlayerController_SetPawn"));
-
 		_logger = Logger;
 	}
 
@@ -416,13 +423,21 @@ public partial class CS2_SimpleAdmin : BasePlugin, IPluginConfig<CS2_SimpleAdmin
 			map = Map,
 			players = Players,
 			maxPlayers = MaxPlayers,
-			maps = Maps
+			maps = Maps,
+			pluginVersion = ModuleVersion
 		};
 
-		List<object> users = new List<object>();
-
-		playersToTarget.FindAll(player => !player.IsBot && !player.IsHLTV && player.PlayerName != "").ForEach(player =>
+		List<Task<object>> playerTasks = playersToTarget
+		.FindAll(player => !player.IsBot && !player.IsHLTV && player.PlayerName != "")
+		.Select(async player =>
 		{
+			string deaths = player.ActionTrackingServices!.MatchStats.Deaths.ToString();
+			string headshots = player.ActionTrackingServices!.MatchStats.HeadShotKills.ToString();
+			string assists = player.ActionTrackingServices!.MatchStats.Assists.ToString();
+			string damage = player.ActionTrackingServices!.MatchStats.Damage.ToString();
+			string kills = player.ActionTrackingServices!.MatchStats.Kills.ToString();
+			string time = player.ActionTrackingServices!.MatchStats.LiveTime.ToString();
+
 			var user = new
 			{
 				userId = player.UserId,
@@ -435,26 +450,40 @@ public partial class CS2_SimpleAdmin : BasePlugin, IPluginConfig<CS2_SimpleAdmin
 				ping = player.Ping,
 				team = player.Team,
 				clanName = player.ClanName,
-				kills = player.Kills, // ? Is this correct?
-				deaths = player.PlayerDominated, // ? Is this correct?
+				kills,
+				deaths,
+				assists,
+				headshots,
+				damage,
 				score = player.Score,
 				roundScore = player.RoundScore,
 				roundsWon = player.RoundsWon,
-				flags = player.Flags,
 				mvps = player.MVPs,
-				connected = player.Connected,
-				valid = player.IsValid,
-				time = player.LerpTime, // ? Fix this, it's not the time the player has been connected
+				time, // ? Fix this, it's not the time the player has been connected
+				avatar = player.AuthorizedSteamID != null ? await GetProfilePictureAsync(player.AuthorizedSteamID.SteamId64.ToString(), true) : ""
 			};
 
-			users.Add(user);
-		});
+			return (object)user;
+		}).ToList();
+
+		List<object> players = new List<object>();
+		try
+		{
+			players = Task.WhenAll(playerTasks).Result.ToList();
+		}
+		catch (AggregateException ex)
+		{
+			foreach (var innerEx in ex.InnerExceptions)
+			{
+				Logger.LogError(innerEx, "Error while querying players");
+			}
+		}
 
 		string jsonString = JsonConvert.SerializeObject(
 			new
 			{
 				server,
-				users
+				players
 			}
 		);
 
@@ -2473,4 +2502,51 @@ public partial class CS2_SimpleAdmin : BasePlugin, IPluginConfig<CS2_SimpleAdmin
 		}
 	}
 
+	private static async Task<string> GetProfilePictureAsync(string steamId64, bool small = false)
+	{
+		string size = small ? "avatarMedium" : "avatarFull";
+		try
+		{
+			string apiUrl = $"https://steamcommunity.com/profiles/{steamId64}/?xml=1";
+
+			HttpResponseMessage response = await httpClient.GetAsync(apiUrl);
+
+			if (response.IsSuccessStatusCode)
+			{
+				string xmlResponse = await response.Content.ReadAsStringAsync();
+				int startIndex = xmlResponse.IndexOf($"<{size}><![CDATA[") + $"<{size}><![CDATA[".Length;
+				int endIndex = xmlResponse.IndexOf($"]]></{size}>", startIndex);
+				string profilePictureUrl = xmlResponse.Substring(startIndex, endIndex - startIndex);
+
+				return profilePictureUrl;
+			}
+			else
+			{
+				Console.WriteLine($"Error: {response.StatusCode} - {response.ReasonPhrase}");
+				return null!;
+			}
+		}
+		catch (Exception ex)
+		{
+			Console.WriteLine($"Exception: {ex.Message}");
+			return null!;
+		}
+	}
+
+
+
+	static int CountLetters(string input)
+	{
+		int count = 0;
+
+		foreach (char c in input)
+		{
+			if (char.IsLetter(c))
+			{
+				count++;
+			}
+		}
+
+		return count;
+	}
 }
